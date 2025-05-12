@@ -1,7 +1,6 @@
 # Telegram @Itz_Your_4Bhi
 # Copyright ©️ 2025
 
-# helpers/db.py
 from datetime import datetime
 from Config import Config
 from pymongo import MongoClient
