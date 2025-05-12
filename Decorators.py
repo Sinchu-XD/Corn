@@ -29,61 +29,60 @@ from functools import wraps
 from Database import get_channels, get_force_check, get_sudo_list
 from Config import Config
 
-async def check_subscription(bot, user_id: int) -> bool:
+async def check_subscription(client, user_id: int) -> bool:
     channels = await get_channels()
-    for ch in channels:
+    if not channels:
+        return True  # No channels to check
+
+    usernames = []
+    if isinstance(channels, dict):
+        usernames = list(channels.values())
+    elif isinstance(channels, list):
+        usernames = channels
+
+    for channel in usernames:
         try:
-            member = await bot.get_chat_member(ch, user_id)
-            if member.status not in [
-                ChatMemberStatus.MEMBER,
-                ChatMemberStatus.ADMINISTRATOR,
-                ChatMemberStatus.OWNER,
-            ]:
+            member = await client.get_chat_member(chat_id=channel, user_id=user_id)
+            if member.status in ("kicked", "left"):
                 return False
-        except (UserNotParticipant, PeerIdInvalid):
+        except UserNotParticipant:
             return False
-        except Exception:
-            continue
+        except Exception as e:
+            print(f"[Subscription Check Error] {e}")
+            continue  # Skip problematic channels
+
     return True
+
+from functools import wraps
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from .Database import get_channels, get_main_channel
+from .Config import Config
+from .Decorators import check_subscription
 
 def subscription_required(func):
     @wraps(func)
-    async def wrapper(client, update):
-        user = update.from_user
-        if not user:
-            return
+    async def wrapper(client, message: Message, *args, **kwargs):
+        user_id = message.from_user.id
+        if await check_subscription(client, user_id):
+            return await func(client, message, *args, **kwargs)
 
-        user_id = user.id
-        sudo_users = await get_sudo_list()
+        channels = await get_channels()
+        main_channel = await get_main_channel()
+        keyboard = []
 
-        # ✅ Skip check for OWNER or SUDO
-        if user_id == Config.OWNER_ID or user_id in sudo_users:
-            return await func(client, update)
+        if isinstance(channels, dict):
+            for slot, username in channels.items():
+                keyboard.append([InlineKeyboardButton(f"📡 Join @{username}", url=f"https://t.me/{username}")])
+        elif isinstance(channels, list):
+            for username in channels:
+                keyboard.append([InlineKeyboardButton(f"📡 Join @{username}", url=f"https://t.me/{username}")])
 
-        # ✅ Skip if force-check is disabled
-        if not await get_force_check():
-            return await func(client, update)
+        keyboard.append([InlineKeyboardButton("✅ I Joined", callback_data="check_join")])
+        if main_channel:
+            keyboard.append([InlineKeyboardButton("🏠 Main Channel", url=f"https://t.me/{main_channel}")])
 
-        # ✅ Perform join check
-        if not await check_subscription(client, user_id):
-            channels = await get_channels()
-            buttons = [
-                [InlineKeyboardButton(f"🔗 Join Channel {i+1}", url=f"https://t.me/{ch}")]
-                for i, ch in enumerate(channels)
-            ]
-            buttons.append([InlineKeyboardButton("✅ I Joined", callback_data="check_join")])
-
-            text = "🚫 **You must join all required channels to use this bot.**"
-            markup = InlineKeyboardMarkup(buttons)
-
-            if isinstance(update, Message):
-                return await update.reply(text, reply_markup=markup)
-            elif isinstance(update, CallbackQuery):
-                return await update.message.edit_text(text, reply_markup=markup)
-
-            return  # prevent fallback
-
-        # ✅ If check passes, continue
-        return await func(client, update)
-
+        return await message.reply(
+            "📥 Please join all required channels to use this bot:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     return wrapper
