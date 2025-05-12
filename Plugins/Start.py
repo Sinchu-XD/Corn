@@ -5,12 +5,14 @@ from Config import Config
 from Decorators import subscription_required, check_subscription
 from Database import get_channels, get_sudo_list, get_main_channel
 
+
 # ✅ Admin check
 async def is_admin(uid: int) -> bool:
     sudo_users = await get_sudo_list()
     return uid == Config.OWNER_ID or uid in sudo_users
 
 
+# ✅ /start command
 @bot.on_message(filters.command("start"))
 @subscription_required
 async def start_command(client: Client, message: Message):
@@ -43,38 +45,21 @@ async def start_command(client: Client, message: Message):
             reply_markup=InlineKeyboardMarkup(buttons)
         )
 
-    # ✅ Non-admins (Check join again)
-    if not await check_subscription(client, user_id):
-        keyboard = []
-        if isinstance(channels, dict):
-            for slot, username in channels.items():
-                keyboard.append([InlineKeyboardButton(f"📡 Join @{username}", url=f"https://t.me/{username}")])
-        elif isinstance(channels, list):
-            for username in channels:
-                keyboard.append([InlineKeyboardButton(f"📡 Join @{username}", url=f"https://t.me/{username}")])
-        else:
-            return await message.reply("❌ Invalid channel configuration.")
-
-        keyboard.append([InlineKeyboardButton("✅ I Joined", callback_data="check_join")])
-        if main_channel:
-            keyboard.append([InlineKeyboardButton("🏠 Main Channel", url=f"https://t.me/{main_channel}")])
-
-        return await message.reply(
-            "📥 To access the content, please join all required channels:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
-    # ✅ Verified non-admin
+    # ✅ Normal user view
     keyboard = []
+
     if main_channel:
         keyboard.append([InlineKeyboardButton("🏠 Main Channel", url=f"https://t.me/{main_channel}")])
 
+    keyboard.append([InlineKeyboardButton("✅ Check", callback_data="check_join")])
+
     return await message.reply(
-        "✅ Welcome! You're verified..",
-        reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None
+        "👋 To use this bot, please make sure you've joined all the required channels.\n\nOnce done, click the ✅ **Check** button below.",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
+# ✅ Recheck join
 @bot.on_callback_query(filters.regex("check_join"))
 async def recheck_subscription(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
@@ -84,6 +69,7 @@ async def recheck_subscription(client, callback_query: CallbackQuery):
         await callback_query.answer("🚫 You haven't joined all channels yet.", show_alert=True)
 
 
+# ✅ View required channels (admin only)
 @bot.on_callback_query(filters.regex("view_channels"))
 async def view_channels_callback(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
@@ -110,6 +96,7 @@ async def view_channels_callback(client: Client, callback_query: CallbackQuery):
     )
 
 
+# ✅ Back to admin start view
 @bot.on_callback_query(filters.regex("start_back"))
 async def back_to_start(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
@@ -125,3 +112,4 @@ async def back_to_start(client: Client, callback_query: CallbackQuery):
         "👋 Welcome Admin!\n\n📤 Send any file to convert into a sharable link.",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
+    
