@@ -70,3 +70,43 @@ async def recheck_subscription(client, callback_query: CallbackQuery):
         await callback_query.message.edit("✅ You're successfully verified! You can now use the bot.")
     else:
         await callback_query.answer("🚫 You haven't joined all channels yet.", show_alert=True)
+
+@bot.on_callback_query(filters.regex("view_channels"))
+async def view_channels_callback(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+
+    # Check if user is admin
+    if not await is_admin(user_id):
+        return await callback_query.answer("🚫 You are not allowed to view this.", show_alert=True)
+
+    channels = await get_channels()
+    if not channels:
+        return await callback_query.message.edit("❌ No channels added yet.")
+
+    # Format response
+    if isinstance(channels, dict):
+        channel_list = "\n".join([f"🔹 Slot {slot}: @{username}" for slot, username in channels.items()])
+    elif isinstance(channels, list):
+        channel_list = "\n".join([f"🔹 @{username}" for username in channels])
+    else:
+        return await callback_query.message.edit("⚠️ Invalid channel data format.")
+
+    await callback_query.message.edit(
+        f"📡 **Required Channels:**\n\n{channel_list}",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Back", callback_data="start_back")]
+        ])
+    )
+
+@bot.on_callback_query(filters.regex("start_back"))
+async def back_to_start(client: Client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    if not await is_admin(user_id):
+        return await callback_query.answer("🚫 Not allowed.", show_alert=True)
+
+    await callback_query.message.edit(
+        "👋 Welcome Admin!\n\n📤 Send any file to convert into a sharable link.",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📡 View Channels", callback_data="view_channels")]]
+        )
+    )
