@@ -2,7 +2,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from Config import Config
-from Database import users_col, files_col, channel_col, get_sudo_list
+from Database import get_users_count, files_col, channel_col, get_sudo_list
 from Bot import bot
 
 @bot.on_message(filters.command("stats"))
@@ -13,7 +13,7 @@ async def bot_stats(client: Client, message: Message):
         return await message.reply("❌ You are not authorized to view stats.")
 
     # Count stats
-    total_users = users_col.count_documents({})
+    total_users = await get_users_count()
     total_files = files_col.count_documents({})
     total_channels = channel_col.count_documents({})
     total_sudos = len(await get_sudo_list())
