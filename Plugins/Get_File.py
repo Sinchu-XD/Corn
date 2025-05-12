@@ -10,11 +10,12 @@ import asyncio
 # ✅ Function to check if user is a member of a given channel
 async def is_member(client: Client, user_id: int, channel: str) -> bool:
     try:
-        member = await client.get_chat_member(channel, user_id)
+        chat = await client.get_chat(channel)
+        member = await client.get_chat_member(chat.id, user_id)
         return member.status in ["member", "administrator", "creator"]
-    except Exception:
+    except Exception as e:
+        print(f"[JOIN CHECK ERROR] {e}")
         return False
-
 
 @bot.on_message(filters.command("start") & filters.private & filters.regex(r"^/start\s(.+)"))
 async def start_link_restore(c: Client, m: Message):
