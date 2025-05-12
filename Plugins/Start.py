@@ -64,7 +64,7 @@ async def start_command(client: Client, message: Message):
 async def recheck_subscription(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     if await check_subscription(client, user_id):
-        await callback_query.message.edit("✅ You're successfully verified! You can now use the bot.")
+        await callback_query.message.edit("✅ You're successfully verified! You can now use the bot.\n\n **Please Run Same As Again You Get From Channel**")
     else:
         await callback_query.answer("🚫 You haven't joined all channels yet.", show_alert=True)
 
