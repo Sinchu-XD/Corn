@@ -55,9 +55,9 @@ async def check_subscription(client, user_id: int) -> bool:
 
 from functools import wraps
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from .Database import get_channels, get_main_channel
-from .Config import Config
-from .Decorators import check_subscription
+from Database import get_channels, get_main_channel
+from Config import Config
+from Decorators import check_subscription
 
 def subscription_required(func):
     @wraps(func)
