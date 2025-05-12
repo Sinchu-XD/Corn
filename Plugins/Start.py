@@ -2,6 +2,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from Bot import bot
 from Config import Config
+from Database import add_user
 from Decorators import subscription_required, check_subscription
 from Database import get_channels, get_sudo_list, get_main_channel
 
@@ -17,6 +18,8 @@ async def is_admin(uid: int) -> bool:
 @subscription_required
 async def start_command(client: Client, message: Message):
     user_id = message.from_user.id
+    user = message.from_user
+    await add_user(user.id, user.first_name, user.username)
     mention = message.from_user.mention
     channels = await get_channels()
     main_channel = await get_main_channel()
