@@ -1,7 +1,9 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from Bot import bot
-from Database import get_file_by_id
+from Database import get_file_by_id, get_channels
+from bson.errors import InvalidId
+from Decorators import subscription_required, check_subscription
 from Config import Config
 from bson.errors import InvalidId
 import asyncio
@@ -18,27 +20,13 @@ async def is_member(client: Client, user_id: int, channel: str) -> bool:
         return False
 
 @bot.on_message(filters.command("start") & filters.private & filters.regex(r"^/start\s(.+)"))
+@subscription_required
 async def start_link_restore(c: Client, m: Message):
     user_id = m.from_user.id
     file_ref_id = m.text.split(" ", 1)[1]
 
     # ✅ Enforce join for both required channels
-    required_channels = ["StreeCorporation", "StreeHub"]
-    not_joined = []
 
-    for ch in required_channels:
-        if not await is_member(c, user_id, ch):
-            not_joined.append(ch)
-
-    if not_joined:
-        buttons = [
-            [InlineKeyboardButton(f"📡 Join @{ch}", url=f"https://t.me/{ch}")] for ch in not_joined
-        ]
-        buttons.append([InlineKeyboardButton("✅ I Joined", callback_data=f"check_join_restore|{file_ref_id}")])
-        return await m.reply(
-            "🚫 To access the file, please join the required channels first:",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
 
     # ✅ Proceed with file restore
     try:
@@ -79,22 +67,24 @@ async def start_link_restore(c: Client, m: Message):
 from pyrogram.types import CallbackQuery
 
 @bot.on_callback_query(filters.regex(r"check_join_restore\|(.+)"))
-async def recheck_restore_join(c: Client, cb: CallbackQuery):
-    user_id = cb.from_user.id
+async def recheck_join_button(c: Client, cb: CallbackQuery):
     file_ref_id = cb.data.split("|")[1]
-
-    required_channels = ["StreeCorporation", "StreeHub"]
+    user_id = cb.from_user.id
+    channels = await get_channels()
     not_joined = []
 
-    for ch in required_channels:
-        if not await is_member(c, user_id, ch):
+    for ch in channels:
+        if not await check_subscription(c, user_id):
             not_joined.append(ch)
 
     if not_joined:
         return await cb.answer("🚫 You haven't joined all required channels yet.", show_alert=True)
 
-    # User has now joined — trigger file restore again
+    await cb.answer("✅ You're verified!", show_alert=True)
     await cb.message.delete()
+
+    # Simulate a /start <file_id> call again
     fake_message = cb.message
+    fake_message.from_user = cb.from_user
     fake_message.text = f"/start {file_ref_id}"
     await start_link_restore(c, fake_message)
