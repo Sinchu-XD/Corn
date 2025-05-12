@@ -70,7 +70,7 @@ async def get_force_check():
     return setting["value"] if setting else False
 
 async def set_main_channel(channel: str):
-    await config_col.update_one(
+    config_col.update_one(
         {"_id": "main_channel"},
         {"$set": {"value": channel}},
         upsert=True
