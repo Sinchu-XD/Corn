@@ -12,6 +12,7 @@ db = MongoClient(Config.MONGO_URI).RichBot
 sudo_col = db.sudo_users
 settings_collection = db["settings"]
 users_col = db.users
+config_col = db["config"]
 
 # ✅ Add user to DB
 async def add_user(user_id: int, first_name: str, username: str = None):
@@ -68,3 +69,15 @@ async def set_force_check(value: bool):
 async def get_force_check():
     setting = settings_collection.find_one({"_id": "force_check"})
     return setting["value"] if setting else False
+
+async def set_main_channel(channel: str):
+    await config_col.update_one(
+        {"_id": "main_channel"},
+        {"$set": {"value": channel}},
+        upsert=True
+    )
+
+# ✅ Get Main Channel
+async def get_main_channel() -> str:
+    data = config_col.find_one({"_id": "main_channel"})
+    return data["value"] if data else None
