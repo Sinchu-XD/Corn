@@ -1,6 +1,7 @@
 # Telegram @Itz_Your_4Bhi
 # Copyright ©️ 2025
 
+# helpers/db.py
 from datetime import datetime
 from Config import Config
 from pymongo import MongoClient
@@ -10,19 +11,24 @@ from bson import ObjectId
 db = MongoClient(Config.MONGO_URI).RichBot
 sudo_col = db.sudo_users
 settings_collection = db["settings"]
-users_col = db.users
+users_collection = db.users
+users_collection.insert_one({"user_id": 123, "first_name": "Test", "username": "testuser", "joined_on": datetime.utcnow()})
 config_col = db["config"]
 
-# ✅ Add user to DB
 async def add_user(user_id: int, first_name: str, username: str = None):
-    if not users_col.find_one({"user_id": user_id}):
+    if not users_collection.find_one({"user_id": user_id}):
         users_col.insert_one({
             "user_id": user_id,
             "first_name": first_name,
             "username": username,
             "joined_on": datetime.utcnow()
         })
-        
+
+
+async def get_users_count() -> int:
+    return users_collection.count_documents({})
+
+
 async def add_sudo(user_id: int):
     if not sudo_col.find_one({"user_id": user_id}):
         sudo_col.insert_one({"user_id": user_id})
