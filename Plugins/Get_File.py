@@ -1,7 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from Bot import bot
-from Database import get_file_by_id, get_channels
+from Database import get_file_by_id, get_channels, add_user
 from bson.errors import InvalidId
 from Decorators import subscription_required, check_subscription
 from Config import Config
@@ -24,6 +24,9 @@ async def is_member(client: Client, user_id: int, channel: str) -> bool:
 async def start_link_restore(c: Client, m: Message):
     user_id = m.from_user.id
     file_ref_id = m.text.split(" ", 1)[1]
+    user = m.from_user
+    await add_user(user.id, user.first_name, user.username)
+    
 
     # ✅ Enforce join for both required channels
 
