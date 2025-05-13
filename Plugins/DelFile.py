@@ -1,40 +1,45 @@
-# plugins/delfile.py
-
-from pyrogram import Client, filters
-from pyrogram.types import Message
+from telethon import events
+from bson import ObjectId
+from bson.errors import InvalidId
+from Bot import bot
 from Database import files_col, get_sudo_list
 from Config import Config
-from bson import ObjectId
-from Bot import bot
-from bson.errors import InvalidId
 
-@bot.on_message(filters.command("delfile"))
-async def delete_file_handler(client: Client, message: Message):
-    user_id = message.from_user.id
+
+async def is_authorized(user_id: int) -> bool:
     sudoers = await get_sudo_list()
-    if user_id not in sudoers and user_id != Config.OWNER_ID:
-        return await message.reply("❌ You don't have permission to use this command.")
+    return user_id in sudoers or user_id == Config.OWNER_ID
 
-    if len(message.command) < 2:
-        return await message.reply("Usage:\n`/delfile <file_id>`", quote=True)
 
-    file_id = message.text.split(None, 1)[1]
+@bot.on(events.NewMessage(pattern=r"/delfile(?:\s+(.+))?"))
+async def delete_file_handler(event: events.NewMessage.Event):
+    sender = await event.get_sender()
+    user_id = sender.id
+
+    if not await is_authorized(user_id):
+        return await event.reply("❌ You don't have permission to use this command.")
+
+    file_id = event.pattern_match.group(1)
+    if not file_id:
+        return await event.reply("Usage:\n`/delfile <file_id>`")
 
     try:
         result = files_col.delete_one({"_id": ObjectId(file_id)})
         if result.deleted_count:
-            return await message.reply("✅ File deleted successfully.")
+            return await event.reply("✅ File deleted successfully.")
         else:
-            return await message.reply("❌ No file found with that ID.")
+            return await event.reply("❌ No file found with that ID.")
     except InvalidId:
-        return await message.reply("❌ Invalid file ID format.")
-      
-@bot.on_message(filters.command("delallfiles"))
-async def delete_all_files_handler(client: Client, message: Message):
-    user_id = message.from_user.id
-    sudoers = await get_sudo_list()
-    if user_id not in sudoers and user_id != Config.OWNER_ID:
-        return await message.reply("❌ You don't have permission to use this command.")
+        return await event.reply("❌ Invalid file ID format.")
+
+
+@bot.on(events.NewMessage(pattern="/delallfiles"))
+async def delete_all_files_handler(event: events.NewMessage.Event):
+    sender = await event.get_sender()
+    user_id = sender.id
+
+    if not await is_authorized(user_id):
+        return await event.reply("❌ You don't have permission to use this command.")
 
     result = files_col.delete_many({})
-    await message.reply(f"✅ Deleted `{result.deleted_count}` files from the database.")
+    await event.reply(f"✅ Deleted `{result.deleted_count}` files from the database.")
