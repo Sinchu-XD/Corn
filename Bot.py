@@ -1,9 +1,8 @@
-from pyrogram import Client
+from telethon import TelegramClient
 from Config import Config
 
-bot = Client(
-    "RichFeatureBot",
-    api_id=Config.API_ID,
-    api_hash=Config.API_HASH,
-    bot_token=Config.BOT_TOKEN,
-)
+bot = TelegramClient(
+    "RichFeatureBot", 
+    Config.API_ID,
+    Config.API_HASH
+).start(bot_token=Config.BOT_TOKEN)
