@@ -17,7 +17,7 @@ config_col = db["config"]
 
 async def add_user(user_id: int, first_name: str, username: str = None):
     if not users_collection.find_one({"user_id": user_id}):
-        users_col.insert_one({
+        users_collection.insert_one({
             "user_id": user_id,
             "first_name": first_name,
             "username": username,
