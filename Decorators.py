@@ -1,88 +1,72 @@
-# helpers/filters.py
-
-from pyrogram import filters
 from Config import Config
-
-def owner_only(_, __, m):
-    return m.from_user and m.from_user.id == Config.OWNER_ID
-
-owner_only = filters.create(owner_only)
-
-# Add below owner_only in helpers/filters.py
-
-from Database import get_sudo_list
-
-async def is_sudo(_, __, m):
-    sudoers = await get_sudo_list()
-    return m.from_user and m.from_user.id in sudoers
-
-sudo_only = filters.create(is_sudo)
-
-owner_or_sudo = owner_only | sudo_only
-
-# helpers/check_join.py
-
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
-from pyrogram.errors import UserNotParticipant, PeerIdInvalid
-from pyrogram.enums import ChatMemberStatus
+from telethon import events, Button
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.errors import UserNotParticipantError, ChatAdminRequiredError
+from Database import get_channels, get_sudo_list, get_main_channel
 from functools import wraps
-from Database import get_channels, get_force_check, get_sudo_list
-from Config import Config
 
+# Check if the user is subscribed to all required channels
 async def check_subscription(client, user_id: int) -> bool:
     channels = await get_channels()
     if not channels:
-        return True  # No channels to check
+        return True  # No channels to check, considered as subscribed
 
-    usernames = []
-    if isinstance(channels, dict):
-        usernames = list(channels.values())
-    elif isinstance(channels, list):
-        usernames = channels
+    usernames = list(channels.values()) if isinstance(channels, dict) else channels
 
     for channel in usernames:
         try:
-            member = await client.get_chat_member(chat_id=channel, user_id=user_id)
-            if member.status in ("kicked", "left"):
+            result = await client(GetParticipantRequest(channel, user_id))
+            # If the user is banned, return False
+            if result.participant is None:  # Participant doesn't exist or is banned
                 return False
-        except UserNotParticipant:
-            return False
+        except UserNotParticipantError:
+            return False  # User is not a participant
+        except ChatAdminRequiredError:
+            continue  # Skip if bot can't access participant details
         except Exception as e:
             print(f"[Subscription Check Error] {e}")
-            continue  # Skip problematic channels
+            continue  # Continue checking other channels
 
-    return True
+    return True  # User is subscribed to all channels
 
-from functools import wraps
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from Database import get_channels, get_main_channel
-from Config import Config
-from Decorators import check_subscription
-
+# Decorator to enforce subscription requirement
 def subscription_required(func):
     @wraps(func)
-    async def wrapper(client, message: Message, *args, **kwargs):
-        user_id = message.from_user.id
-        if await check_subscription(client, user_id):
-            return await func(client, message, *args, **kwargs)
+    async def wrapper(event: events.NewMessage.Event):
+        user_id = event.sender_id
+        if await check_subscription(event.client, user_id):
+            return await func(event)
 
+        # If not subscribed, show a subscription reminder with buttons
         channels = await get_channels()
         main_channel = await get_main_channel()
-        keyboard = []
+        buttons = []
 
-        if isinstance(channels, dict):
-            for slot, username in channels.items():
-                keyboard.append([InlineKeyboardButton(f"📡 Join @{username}", url=f"https://t.me/{username}")])
-        elif isinstance(channels, list):
-            for username in channels:
-                keyboard.append([InlineKeyboardButton(f"📡 Join @{username}", url=f"https://t.me/{username}")])
+        usernames = list(channels.values()) if isinstance(channels, dict) else channels
+        for username in usernames:
+            buttons.append([Button.url(f"📡 Join @{username}", f"https://t.me/{username}")])
 
-        keyboard.append([InlineKeyboardButton("✅ I Joined", callback_data="check_join")])
+        buttons.append([Button.inline("✅ I Joined", b"check_join")])
         if main_channel:
-            keyboard.append([InlineKeyboardButton("🏠 Main Channel", url=f"https://t.me/{main_channel}")])
+            buttons.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
 
-        return await message.reply(
+        await event.respond(
             "📥 Please join all required channels to use this bot:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            buttons=buttons
         )
     return wrapper
+
+# Function to check if the user is the owner of the bot
+def owner_only(event: events.NewMessage.Event):
+    return event.sender_id == Config.OWNER_ID
+
+# Function to check if the user is in the sudo list
+async def is_sudo(event: events.NewMessage.Event):
+    sudoers = await get_sudo_list()
+    return event.sender_id in sudoers
+
+# Function to check if the user is either the owner or a sudo user
+async def owner_or_sudo(event):
+    user = await event.get_sender()
+    sudoers = await get_sudo_list()
+    return user and (user.id in sudoers or user.id == Config.OWNER_ID)
