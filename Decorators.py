@@ -54,6 +54,7 @@ def subscription_required(func):
             "📥 Please join all required channels to use this bot:",
             buttons=buttons
         )
+        return
     return wrapper
 
 # Function to check if the user is the owner of the bot
