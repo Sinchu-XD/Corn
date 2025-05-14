@@ -2,7 +2,7 @@ from telethon import TelegramClient, events, Button
 from telethon.tl.types import InputPeerUser
 from Config import Config
 from Bot import bot
-from Database import add_user, get_sudo_list
+from Database import add_user, get_sudo_list, get_main_channel
 from Decorators import subscription_required
 
 # ✅ Admin check
@@ -26,6 +26,12 @@ async def start_command(event):
     except Exception as e:
         print(f"Logging failed: {e}")
 
+    main_channel = await get_main_channel()
+
+    keyboard = []
+    if main_channel:
+        keyboard.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
+
     # ✅ Admin view
     if await is_admin(user_id):
         return await event.reply(
@@ -34,5 +40,6 @@ async def start_command(event):
 
     # ✅ Normal user view (no channel check, no subscription check)
     return await event.reply(
-        "👋 Welcome!\n\nYou can start using the bot right away.\n\n **Please Join @StreeHub**\n**Join Our 2nd Channel @StreeCorporation**"
+        "👋 Welcome!\n\nYou can start using the bot right away.\n\n **Please Join @StreeHub**\n**Join Our 2nd Channel @StreeCorporation**"'
+        buttons=keyboard
     )
