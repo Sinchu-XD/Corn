@@ -78,7 +78,7 @@ async def recheck_join_button(event):
         return
 
     await event.answer("✅ You're verified!", alert=True)
-    await event.message.delete()
+    await event._message.delete()
 
     # Fake /start <file_id> trigger
     class FakeEvent:
