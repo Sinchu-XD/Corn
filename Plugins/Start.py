@@ -40,6 +40,6 @@ async def start_command(event):
 
     # ✅ Normal user view (no channel check, no subscription check)
     return await event.reply(
-        "👋 Welcome!\n\nYou can start using the bot right away.\n\n **Please Join @StreeHub**\n**Join Our 2nd Channel @StreeCorporation**"'
+        "👋 Welcome!\n\nYou can start using the bot right away.\n\n **Please Join @StreeHub**\n**Join Our 2nd Channel @StreeCorporation**",
         buttons=keyboard
     )
