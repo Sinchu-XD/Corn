@@ -40,6 +40,6 @@ async def start_command(event):
 
     # ✅ Normal user view (no channel check, no subscription check)
     return await event.reply(
-        "•  Now You Can Use Bot Without Any Interrupt.\n•  Please Click On Main Channel For All 18+ Contents..\n\n•  अब आप बिना किसी रुकावट के बॉट का उपयोग कर सकते हैं।\n•  **•  कृपया सभी 18+ वीडियो के लिए Main Channel पर क्लिक करें |**\n 👇🏻👇🏻👇🏻",
+        "•  **Now You Can Use Bot Without Any Interrupt**.\n•  **Please Click On Main Channel For All 18+ Contents**.\n\n•** अब आप बिना किसी रुकावट के बॉट का उपयोग कर सकते हैं।**\n **•  कृपया सभी 18+ वीडियो के लिए Main Channel पर क्लिक करें |**\n 👇🏻👇🏻👇🏻",
         buttons=keyboard
     )
