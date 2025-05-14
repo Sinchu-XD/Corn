@@ -2,7 +2,7 @@ from telethon import TelegramClient, events, Button
 from telethon.tl.types import InputPeerUser
 from Config import Config
 from Bot import bot
-from Database import add_user
+from Database import add_user, get_sudo_list
 from Decorators import subscription_required
 
 # ✅ Admin check
