@@ -1,4 +1,5 @@
 from Config import Config
+from Bot import bot
 from telethon import events, Button
 from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.errors import UserNotParticipantError, ChatAdminRequiredError
