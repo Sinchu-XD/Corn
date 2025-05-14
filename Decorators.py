@@ -66,8 +66,28 @@ from telethon.tl.functions.messages import DeleteMessagesRequest
 @bot.on(events.CallbackQuery(pattern="check_join"))
 async def recheck_subscription(event):
     user_id = event.sender_id
+    main_channel = await get_main_channel()
+
+    keyboard = []
+    if main_channel:
+        keyboard.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
+        
     if await check_subscription(bot, user_id):
-        await event.edit("✅ You're successfully verified! You can now use the bot.\n\n **Please Run Same As Again You Get From Channel**")
+        await event.edit(
+            """
+            •  You're Successfully Verified. 
+            •  Now You Can Use Bot Without Any Interrupt.
+            •  Please Click On Main Channel For All 18+ Contents.
+            •  You Get Many Videos There, Only You Have To Click On Link Which One You Want.\n\n
+            •  आपका सफलतापूर्वक सत्यापन हो गया है। 
+            •  अब आप बिना किसी रुकावट के बॉट का उपयोग कर सकते हैं।
+            •  कृपया सभी 18+ वीडियो के लिए Main Channel पर क्लिक करें |
+            •  आपको वहां कई वीडियो मिलेंगे, आपको उस लिंक पर क्लिक करना है जो आप देखना चाहते हैं |\n
+            👇🏻👇🏻👇🏻
+            """,
+            button=keyboard
+        )
+            
     else:
         await event.answer("🚫 You haven't joined all channels yet.", alert=True)
 
