@@ -11,7 +11,8 @@ import asyncio
 
 # ✅ Function to check if the user is subscribed to all required channels
 # ✅ /start <file_id> handler
-@bot.on(events.NewMessage(pattern=r"^/start\s(.+)", func=subscription_required))
+@bot.on(events.NewMessage(pattern=r"^/start\s(.+)"))
+@subscription_required
 async def start_link_restore(event):
     user_id = event.sender_id
     file_ref_id = event.text.split(" ", 1)[1]
