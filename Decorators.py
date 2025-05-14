@@ -46,9 +46,11 @@ def subscription_required(func):
         for username in usernames:
             buttons.append([Button.url(f"📡 Join @{username}", f"https://t.me/{username}")])
 
-        buttons.append([Button.inline("✅ I Joined", b"check_join")])
+        
         if main_channel:
             buttons.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
+
+        buttons.append([Button.inline("✅ I Joined", b"check_join")])
 
         await event.respond(
             "📥 Please join all required channels to use this bot:",
@@ -76,9 +78,11 @@ async def check_join(event):
         for username in usernames:
             buttons.append([Button.url(f"📡 Join @{username}", f"https://t.me/{username}")])
 
-        buttons.append([Button.inline("✅ I Joined", b"check_join")])
+        
         if main_channel:
             buttons.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
+
+        buttons.append([Button.inline("✅ I Joined", b"check_join")])
 
         await event.edit(
             "🚫 You haven't joined all required channels yet.\nPlease join them to continue.",
