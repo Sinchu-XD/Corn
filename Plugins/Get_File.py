@@ -14,10 +14,7 @@ async def is_member(client, user_id: int, channel: str) -> bool:
     try:
         chat = await client.get_entity(channel)
         result = await client(GetParticipantRequest(chat, user_id))
-        participant = result.participant
-
-        # Check participant role
-        return isinstance(participant, ChannelParticipant)
+        return result.participant is not None
     except Exception as e:
         print(f"[JOIN CHECK ERROR] {e}")
         return False
@@ -97,7 +94,16 @@ async def recheck_join_button(event):
             not_joined.append(ch)
 
     if not_joined:
-        return await event.answer("🚫 You haven't joined all required channels yet.", alert=True)
+        await event.reply(
+            "🚫 You haven't joined all required channels yet.\n"
+            "Please join these channels to proceed:",
+            buttons=[
+                [Button.url(ch, f"https://t.me/{ch}") for ch in not_joined],
+                [Button.inline("✅ I've Joined", data=f"check_join_restore|{file_ref_id}")]
+        ]
+    )
+        return
+
 
     await event.answer("✅ You're verified!", alert=True)
     await event.message.delete()
