@@ -63,32 +63,20 @@ def subscription_required(func):
 from telethon import Button
 from telethon.tl.functions.messages import DeleteMessagesRequest
 
-@bot.on(events.CallbackQuery(data=b'check_join'))
-async def check_join(event):
+@bot.on(events.CallbackQuery(pattern="check_join"))
+async def recheck_subscription(event):
     user_id = event.sender_id
-
-    if await check_subscription(event.client, user_id):
-        await event.answer("✅ You are now subscribed!", alert=True)
-        await event._message.delete()
+    if await check_subscription(bot, user_id):
+        await event.edit("✅ You're successfully verified! You can now use the bot.\n\n **Please Run Same As Again You Get From Channel**")
     else:
-        channels = await get_channels()
-        main_channel = await get_main_channel()
-        buttons = []
+        await event.answer("🚫 You haven't joined all channels yet.", alert=True)
 
-        usernames = list(channels.values()) if isinstance(channels, dict) else channels
-        for username in usernames:
-            buttons.append([Button.url(f"📡 Join @{username}", f"https://t.me/{username}")])
-
-        
-        if main_channel:
-            buttons.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
-
-        buttons.append([Button.inline("✅ I Joined", b"check_join")])
-
-        await event.edit(
-            "🚫 You haven't joined all required channels yet.\nPlease join them to continue.",
-            buttons=buttons
-        )
+    # Check if event._message exists before trying to delete it
+    if event._message:
+        try:
+            await event._message.delete()
+        except Exception as e:
+            print(f"Failed to delete the message: {e}")
         
 # Function to check if the user is the owner of the bot
 def owner_only(event: events.NewMessage.Event):
