@@ -69,7 +69,7 @@ async def check_join(event):
 
     if await check_subscription(event.client, user_id):
         await event.answer("✅ You are now subscribed!", alert=True)
-        await event.message.delete()
+        await event._message.delete()
     else:
         channels = await get_channels()
         main_channel = await get_main_channel()
