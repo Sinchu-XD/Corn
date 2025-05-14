@@ -34,7 +34,11 @@ async def start_link_restore(event):
         await event.reply(
             "🚫 You haven't joined all required channels yet.\n"
             "Please join these channels to proceed:",
-            buttons=[Button.url(ch, f"https://t.me/{ch}") for ch in not_joined]
+            buttons = [
+                [Button.url("Join " + ch, f"https://t.me/{ch}") for ch in not_joined],
+                [Button.inline("✅ I've Joined", data=f"check_join_restore|{file_ref_id}")]
+]
+
         )
         return
 
@@ -96,13 +100,8 @@ async def recheck_join_button(event):
     if not_joined:
         await event.reply(
             "🚫 You haven't joined all required channels yet.\n"
-            "Please join these channels to proceed:",
-            buttons=[
-                [Button.url(ch, f"https://t.me/{ch}") for ch in not_joined],
-                [Button.inline("✅ I've Joined", data=f"check_join_restore|{file_ref_id}")]
-        ]
-    )
-        return
+        )
+    return
 
 
     await event.answer("✅ You're verified!", alert=True)
