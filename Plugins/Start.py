@@ -28,8 +28,9 @@ async def start_command(event):
 
     main_channel = await get_main_channel()
 
-    keyboard = []
-        keyboard.append([Button.url("How To Use", f"https://t.me/SexyStreeBot")])
+    keyboard = [
+        [Button.url("How To Use", "https://t.me/SexyStreeBot")],
+    ]
 
     # ✅ Admin view
     if await is_admin(user_id):
