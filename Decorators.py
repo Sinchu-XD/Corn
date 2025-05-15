@@ -45,9 +45,6 @@ def subscription_required(func):
         for username in usernames:
             buttons.append([Button.url(f"📡 Join @{username}", f"https://t.me/{username}")])
 
-        if main_channel:
-            buttons.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
-
         buttons.append([Button.inline("✅ I Joined", b"check_join")])
 
         await event.respond(
