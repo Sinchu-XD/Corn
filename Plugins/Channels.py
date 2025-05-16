@@ -1,11 +1,11 @@
 from telethon import events
-from telethon.tl.types import Message
 from telethon.errors import (
     UserAlreadyParticipantError,
     InviteHashInvalidError,
+    InviteHashExpiredError,
+    ChannelPrivateError
 )
-from telethon.tl.functions.messages import ImportChatInviteRequest
-
+from telethon.tl.functions.messages import ImportChatInviteRequest, CheckChatInviteRequest
 from Bot import bot
 from Database import (
     add_channel,
@@ -17,29 +17,14 @@ from Database import (
 from Decorators import owner_or_sudo
 
 
-# ✅ Resolves both public usernames and private invite links
-async def resolve_channel_input(raw: str):
-    raw = raw.strip()
-
+def extract_channel_input(raw: str) -> str:
     if raw.startswith("https://t.me/"):
         raw = raw.replace("https://t.me/", "")
     elif raw.startswith("t.me/"):
         raw = raw.replace("t.me/", "")
-
-    if raw.startswith("+"):  # Private channel invite link
-        try:
-            result = await bot(ImportChatInviteRequest(raw))
-            chat = result.chats[0]
-            return f"private:{chat.id}"
-        except UserAlreadyParticipantError:
-            return f"private:{chat.id}"
-        except InviteHashInvalidError:
-            return None
-        except Exception as e:
-            print(f"[Invite Resolve Error] {e}")
-            return None
-    else:
-        return raw.lstrip("@")
+    if raw.startswith("@"):
+        raw = raw[1:]
+    return raw
 
 
 @bot.on(events.NewMessage(pattern=r"/addchannel(?:\s+(.+))?"))
@@ -49,14 +34,41 @@ async def add_channel_cmd(event: events.NewMessage.Event):
 
     args = event.pattern_match.group(1)
     if not args:
-        return await event.reply("Usage: `/addchannel @channelusername or https://t.me/+invitecode`")
+        return await event.reply("Usage: `/addchannel @username` or invite link")
 
-    ch = await resolve_channel_input(args)
-    if not ch:
-        return await event.reply("❌ Failed to resolve channel. Make sure the bot is added and link is correct.")
+    raw = extract_channel_input(args)
 
-    await add_channel(ch)
-    await event.reply(f"✅ Added `{ch}` to required join list.")
+    try:
+        # Try public @username channel
+        entity = await bot.get_entity(raw)
+        ch_id = entity.username or f"private:{entity.id}"
+        await add_channel(ch_id)
+        return await event.reply(f"✅ Added `{entity.title}` to required join list.")
+    except (ChannelPrivateError, ValueError):
+        pass
+
+    if raw.startswith("+"):  # Private invite link
+        try:
+            chat = await bot(ImportChatInviteRequest(hash=raw))
+            entity = chat.chats[0]
+            await add_channel(f"private:{entity.id}")
+            return await event.reply(f"✅ Added private channel `{entity.title}` to required join list.")
+        except InviteHashInvalidError:
+            return await event.reply("❌ Invalid invite link.")
+        except InviteHashExpiredError:
+            return await event.reply("❌ Invite link has expired.")
+        except UserAlreadyParticipantError:
+            try:
+                chat = await bot(CheckChatInviteRequest(raw))
+                entity = chat.chat
+                await add_channel(f"private:{entity.id}")
+                return await event.reply(f"✅ Added private channel `{entity.title}` to required join list.")
+            except Exception:
+                return await event.reply("❌ Failed to resolve invite link.")
+        except Exception:
+            return await event.reply("❌ Failed to resolve channel. Make sure the bot is added and link is correct.")
+    else:
+        return await event.reply("❌ Invalid input. Use @username or a valid invite link.")
 
 
 @bot.on(events.NewMessage(pattern=r"/rmchannel(?:\s+(.+))?"))
@@ -66,12 +78,11 @@ async def remove_channel_cmd(event: events.NewMessage.Event):
 
     args = event.pattern_match.group(1)
     if not args:
-        return await event.reply("Usage: `/rmchannel @channelusername or https://t.me/+invitecode`")
+        return await event.reply("Usage: `/rmchannel @username` or channel ID")
 
-    ch = await resolve_channel_input(args)
-    if not ch:
-        return await event.reply("❌ Failed to resolve channel. Make sure the link is correct.")
-
+    ch = extract_channel_input(args)
+    if ch.startswith("+"):
+        return await event.reply("Use the stored private ID to remove private channels manually.")
     await remove_channel(ch)
     await event.reply(f"❌ Removed `{ch}` from required join list.")
 
@@ -100,9 +111,6 @@ async def set_or_get_main_channel(event: events.NewMessage.Event):
             return await event.reply("🚫 Main channel not set.")
         return await event.reply(f"📢 **Main Channel:** `{main_ch}`")
 
-    ch = await resolve_channel_input(arg)
-    if not ch:
-        return await event.reply("❌ Failed to resolve channel. Make sure the link is correct.")
-
+    ch = extract_channel_input(arg)
     await set_main_channel(ch)
     await event.reply(f"✅ Set `{ch}` as the **Main Channel**.")
