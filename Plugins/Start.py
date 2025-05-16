@@ -29,7 +29,7 @@ async def start_command(event):
     main_channel = await get_main_channel()
 
     keyboard = [
-        [Button.url("How To Use", "https://t.me/SexyStreeBot")],
+        [Button.url("How To Use Bot", "https://t.me/SexyStreeBot/2")],
     ]
 
     # ✅ Admin view
@@ -40,6 +40,6 @@ async def start_command(event):
 
     # ✅ Normal user view (no channel check, no subscription check)
     return await event.reply(
-        "•  **Now You Can Use Bot Without Any Interrupt**.\n•  **Please Click On Main Channel For All 18+ Contents**.\n\n•** अब आप बिना किसी रुकावट के बॉट का उपयोग कर सकते हैं।**\n **•  कृपया सभी 18+ वीडियो के लिए Main Channel पर क्लिक करें |**\n 👇🏻👇🏻👇🏻",
+        "•  ** How To Use Bot Tutorial Watch Here :-**.\n\n•** बॉट ट्यूटोरियल का उपयोग कैसे करें यहां क्लिक करके देखें:**\n 👇🏻👇🏻👇🏻",
         buttons=keyboard
     )
