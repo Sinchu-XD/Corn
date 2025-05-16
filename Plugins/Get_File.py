@@ -39,7 +39,8 @@ async def start_link_restore(event):
             event.chat_id,
             file=original_msg.media,
             caption="📂 Sending your video...\n\nThis video will auto-delete in 20 minutes.",
-            force_document=(data["file_type"] == "document")
+            force_document=(data["file_type"] == "document"),
+            disallow_saving_content=True
         )
         await asyncio.sleep(1200)
         try:
