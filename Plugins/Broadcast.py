@@ -46,4 +46,3 @@ async def broadcast_handler(event):
     await status_msg.edit(
         f"✅ **Broadcast finished**\n\n👥 Total: {total}\n✅ Sent: {done}\n❌ Failed: {failed}"
     )
-  
