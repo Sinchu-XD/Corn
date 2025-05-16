@@ -1,7 +1,7 @@
 from telethon import events
 from Bot import bot
 from Config import Config
-from Database import get_users_count, get_sudo_list
+from Database import get_all_users, get_sudo_list
 import asyncio
 
 async def is_admin(uid: int) -> bool:
@@ -19,7 +19,7 @@ async def broadcast_handler(event):
     if not reply_msg:
         return await event.reply("❌ Please reply to a message (text/photo/video) to broadcast.")
 
-    users = await get_users_count()
+    users = await get_all_users()
     total = len(users)
     done = 0
     failed = 0
