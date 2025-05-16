@@ -19,7 +19,7 @@ async def broadcast_handler(event):
     if not reply_msg:
         return await event.reply("❌ Please reply to a message (text/photo/video) to broadcast.")
 
-    users = await get_all_users()
+    users = get_all_users()
     total = len(users)
     done = 0
     failed = 0
@@ -41,7 +41,7 @@ async def broadcast_handler(event):
             done += 1
         except Exception:
             failed += 1
-        await asyncio.sleep(0.1)  # prevent flood wait
+        await asyncio.sleep(0.1)
 
     await status_msg.edit(
         f"✅ **Broadcast finished**\n\n👥 Total: {total}\n✅ Sent: {done}\n❌ Failed: {failed}"
