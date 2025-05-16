@@ -27,6 +27,11 @@ async def add_user(user_id: int, first_name: str, username: str = None):
 async def get_users_count() -> int:
     return users_collection.count_documents({})
 
+async def get_all_users():
+    users = users_collection.find({}, {"user_id": 1})
+    return [user["user_id"] async for user in users]
+
+
 # ========== SUDO USERS ==========
 async def add_sudo(user_id: int):
     if not sudo_col.find_one({"user_id": user_id}):
