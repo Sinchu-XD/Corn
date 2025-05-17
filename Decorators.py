@@ -45,7 +45,11 @@ def subscription_required(func):
         for username in usernames:
             buttons.append([Button.url(f"📡 Join @{username}", f"https://t.me/{username}")])
 
-        buttons.append([Button.inline("✅ I Joined", b"check_join")])
+        file_ref_id = None
+        if event.text and event.text.startswith("/start "):
+            file_ref_id = event.text.split(" ", 1)[1]
+
+        buttons.append([Button.inline("✅ I Joined", data=f"check_join_{file_ref_id}".encode())])
 
         await event.respond(
             "📥 Please join all required channels to use this bot:",
@@ -54,9 +58,11 @@ def subscription_required(func):
     return wrapper
 
 # ✅ Callback for "✅ I Joined" Button
-@bot.on(events.CallbackQuery(pattern="check_join"))
+@bot.on(events.CallbackQuery(pattern=b"check_join_(.+)"))
 async def recheck_subscription(event):
     user_id = event.sender_id
+    file_ref_id = event.data.decode().split("_", 2)[2]
+
     main_channel = await get_main_channel()
 
     keyboard = []
@@ -79,15 +85,22 @@ async def recheck_subscription(event):
             """,
             buttons=keyboard
         )
+
+        # Yahan file bhejne ka code likhte hain:
+        try:
+            await send_file_by_ref_id(event, file_ref_id)
+        except Exception as e:
+            await event.respond(f"Error sending file: {e}")
+
     else:
         await event.answer("🚫 You haven't joined all channels yet.", alert=True)
 
-    # ✅ Safely delete the previous message if available
     try:
         if hasattr(event, '_message') and event._message:
             await event._message.delete()
     except Exception as e:
         print(f"[Message Delete Error] {e}")
+
 
 # ✅ Admin/Sudo Checks
 def owner_only(event: events.NewMessage.Event):
