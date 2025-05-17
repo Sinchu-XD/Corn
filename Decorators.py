@@ -3,8 +3,9 @@ from Bot import bot
 from telethon import events, Button
 from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.errors import UserNotParticipantError, ChatAdminRequiredError
-from Database import get_channels, get_sudo_list, get_main_channel
+from Database import get_channels, get_sudo_list, get_main_channel, get_file_by_id
 from functools import wraps
+import asyncio
 
 # ✅ Check if the user is subscribed to all required channels
 async def check_subscription(client, user_id: int) -> bool:
@@ -22,6 +23,7 @@ async def check_subscription(client, user_id: int) -> bool:
         except UserNotParticipantError:
             return False
         except ChatAdminRequiredError:
+            # Bot might not be admin, skip this channel
             continue
         except Exception as e:
             print(f"[Subscription Check Error] {e}")
@@ -29,14 +31,35 @@ async def check_subscription(client, user_id: int) -> bool:
 
     return True
 
-# ✅ Send file based on file_ref_id (Customize this as per your file storage)
-async def send_file_by_ref_id(event, file_ref_id):
-    chat = await event.get_chat()
+# ✅ Send file based on file_ref_id using your DB and Telegram message media
+async def send_file_by_ref_id(event, file_ref_id: str):
+    data = await get_file_by_id(file_ref_id)
+    if not data:
+        await event.respond("❌ File not found or deleted.")
+        return
+
     try:
-        await event.client.send_file(chat.id, file_ref_id)
+        # Fetch the original Telegram message containing the media
+        original_msg = await bot.get_messages(data["chat_id"], ids=data["message_id"])
+
+        sent = await event.client.send_file(
+            event.chat_id,
+            file=original_msg.media,
+            caption="📂 Sending your video...\n\nThis video will auto-delete in 20 minutes.",
+            force_document=(data["file_type"] == "document"),
+            has_protected_content=True
+        )
+
+        # Auto-delete after 20 minutes (1200 seconds)
+        await asyncio.sleep(1200)
+        try:
+            await sent.delete()
+        except Exception as e:
+            print(f"[Auto-delete error] {e}")
+
     except Exception as e:
         print(f"[File Send Error] {e}")
-        await event.respond("Sorry, file could not be sent.")
+        await event.respond("⚠️ Failed to send the file. Try again later.")
 
 # ✅ Subscription Required Decorator
 def subscription_required(func):
@@ -112,7 +135,7 @@ async def recheck_subscription(event):
     except Exception as e:
         print(f"[Message Delete Error] {e}")
 
-# ✅ Admin/Sudo Checks (aap zarurat ke mutabiq use kar sakte hain)
+# ✅ Admin/Sudo Checks
 def owner_only(event: events.NewMessage.Event):
     return event.sender_id == Config.OWNER_ID
 
