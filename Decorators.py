@@ -29,6 +29,15 @@ async def check_subscription(client, user_id: int) -> bool:
 
     return True
 
+# ✅ Send file based on file_ref_id (Customize this as per your file storage)
+async def send_file_by_ref_id(event, file_ref_id):
+    chat = await event.get_chat()
+    try:
+        await event.client.send_file(chat.id, file_ref_id)
+    except Exception as e:
+        print(f"[File Send Error] {e}")
+        await event.respond("Sorry, file could not be sent.")
+
 # ✅ Subscription Required Decorator
 def subscription_required(func):
     @wraps(func)
@@ -49,7 +58,7 @@ def subscription_required(func):
         if event.text and event.text.startswith("/start "):
             file_ref_id = event.text.split(" ", 1)[1]
 
-        buttons.append([Button.inline("✅ I Joined", data=f"check_join_{file_ref_id}".encode())])
+        buttons.append([Button.inline("✅ I Joined", data=f"check_join_{file_ref_id or 'none'}".encode())])
 
         await event.respond(
             "📥 Please join all required channels to use this bot:",
@@ -61,7 +70,9 @@ def subscription_required(func):
 @bot.on(events.CallbackQuery(pattern=b"check_join_(.+)"))
 async def recheck_subscription(event):
     user_id = event.sender_id
-    file_ref_id = event.data.decode().split("_", 2)[2]
+    data_str = event.data.decode()
+    parts = data_str.split("_", 2)
+    file_ref_id = parts[2] if len(parts) > 2 else None
 
     main_channel = await get_main_channel()
 
@@ -86,11 +97,11 @@ async def recheck_subscription(event):
             buttons=keyboard
         )
 
-        # Yahan file bhejne ka code likhte hain:
-        try:
-            await send_file_by_ref_id(event, file_ref_id)
-        except Exception as e:
-            await event.respond(f"Error sending file: {e}")
+        if file_ref_id and file_ref_id != "none":
+            try:
+                await send_file_by_ref_id(event, file_ref_id)
+            except Exception as e:
+                await event.respond(f"Error sending file: {e}")
 
     else:
         await event.answer("🚫 You haven't joined all channels yet.", alert=True)
@@ -101,8 +112,7 @@ async def recheck_subscription(event):
     except Exception as e:
         print(f"[Message Delete Error] {e}")
 
-
-# ✅ Admin/Sudo Checks
+# ✅ Admin/Sudo Checks (aap zarurat ke mutabiq use kar sakte hain)
 def owner_only(event: events.NewMessage.Event):
     return event.sender_id == Config.OWNER_ID
 
