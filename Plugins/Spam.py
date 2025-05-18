@@ -33,17 +33,3 @@ async def disable_spam_protection(event):
     enabled_users.discard(user_id)
     m = await event.respond("❎ Spam protection has been disabled for you.")
     asyncio.create_task(delete_messages(event.message, m))
-
-@app.on(events.NewMessage())
-async def spam_check_handler(event):
-    if not event.is_private:
-        return
-    user_id = event.sender_id
-    if user_id not in enabled_users:
-        return
-    if not event.raw_text.startswith('/'):
-        return
-    if not is_spam_allowed(user_id):
-        await event.respond("🚫 You're sending commands too fast. Please wait a moment.")
-        return
-      
