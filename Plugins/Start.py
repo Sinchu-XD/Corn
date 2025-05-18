@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, Button
-from telethon.tl.types import InputPeerUser
+from telethon.errors import UserIsBlockedError, ChatWriteForbiddenError
 from Config import Config
 from Bot import bot
 from .Spam import is_spam_allowed, enabled_users
@@ -20,26 +20,31 @@ async def start_command(event):
     if user_id in enabled_users and not is_spam_allowed(user_id):
         await event.respond("🚫 You're sending commands too fast. Please wait a moment.")
         return
-    
+
     await add_user(user.id, user.first_name, user.username)
     mention = f"[{user.first_name}](tg://user?id={user.id})"
+
+    # ✅ Logging with error handling
     try:
         await bot.send_message(
             Config.LOG_CHANNEL_ID,
-            f"#START\n👤 **User:** {mention}\n📩 Started the bot."
+            f"#START\n👤 **User:** {mention}\n📩 Started the bot.",
+            parse_mode='md'
         )
+    except UserIsBlockedError:
+        print("Logging failed: Bot is blocked by the user.")
+    except ChatWriteForbiddenError:
+        print("Logging failed: Bot has no permission to write to the channel.")
     except Exception as e:
         print(f"Logging failed: {e}")
 
-    main_channel = await get_main_channel()
-
+    # ✅ Prepare keyboard
     keyboard = []
-
+    main_channel = await get_main_channel()
     if main_channel:
         keyboard.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
 
     keyboard.append([Button.url("How To Use Bot", "https://t.me/SexyStreeBot/2")])
-
 
     # ✅ Admin view
     if await is_admin(user_id):
@@ -47,7 +52,7 @@ async def start_command(event):
             "👋 Welcome Admin!\n\n📤 Send any file to convert into a sharable link."
         )
 
-    # ✅ Normal user view (no channel check, no subscription check)
+    # ✅ Normal user view
     return await event.reply(
         "•  ** How To Use Bot Tutorial Watch Here :-**.\n\n•** बॉट ट्यूटोरियल का उपयोग कैसे करें यहां क्लिक करके देखें:**\n 👇🏻👇🏻👇🏻",
         buttons=keyboard
