@@ -1,144 +1,88 @@
-from telethon import events, Button
-from telethon.tl.types import DocumentAttributeVideo, DocumentAttributeAudio
-from Database import save_file  # Your DB logic
+from telethon import events
+from Database import save_file  # Your DB logic to store chat_id + message_id
 from Config import Config
 from Bot import bot
 from Decorators import owner_or_sudo
-import asyncio
+import os
+from datetime import datetime
 
-MAX_FILE_SIZE_MB = 1024  # 1GB max
-user_states = {}
+MAX_FILE_SIZE_MB = 1024  # Maximum allowed file size in MB (1GB)
 
 @bot.on(events.NewMessage(func=owner_or_sudo))
 async def handle_file(event):
+    # ✅ Only allow in private chat
     if not event.is_private:
         return await event.reply("❌ This command can only be used in private chats.")
 
-    # If user is already in a flow, ignore new media
-    if event.sender_id in user_states:
-        return
-
+    # ✅ Check for media (Telethon doesn't use .photo/.video like Bot API)
     if not event.media:
-        return await event.reply("❌ Please send a media file.")
+        return await event.reply("❌ Please send a photo, video, or document.")
 
-    sender_id = event.sender_id
-    media = event.media
-    file_type = "unknown"
+    # ✅ Get file size and check if it exceeds the maximum allowed size
     file_size = 0
-
-    # Determine file type & size
-    if getattr(media, "document", None):
-        doc = media.document
-        file_size = doc.size or 0
-        if any(isinstance(a, DocumentAttributeVideo) for a in doc.attributes):
-            file_type = "video"
-        elif any(isinstance(a, DocumentAttributeAudio) for a in doc.attributes):
-            file_type = "audio"
-        else:
+    file_type = ""
+    media_type = event.media
+    try:
+        if hasattr(media_type, 'document'):
             file_type = "document"
-    elif getattr(media, "photo", None):
-        file_type = "photo"
-    else:
-        return await event.reply("❌ Unsupported media type.")
+            file_size = media_type.document.size
+        elif hasattr(media_type, 'photo'):
+            file_type = "photo"
+            file_size = await media_type.photo.get_size()
+        elif hasattr(media_type, 'video'):
+            file_type = "video"
+            file_size = media_type.video.size
+        elif hasattr(media_type, 'audio'):
+            file_type = "audio"
+            file_size = media_type.audio.size
+        else:
+            file_type = "unknown"
+    except Exception as e:
+        print(f"[ERROR] Failed to get file size: {e}")
+    
+    # Check file size
+    file_size_mb = file_size / (1024 * 1024)  # Convert bytes to MB
+    if file_size_mb > MAX_FILE_SIZE_MB:
+        return await event.reply(f"❌ The file is too large! Maximum allowed size is {MAX_FILE_SIZE_MB} MB.")
+    # ✅ Save file metadata using chat_id + message_id (not file_id)
+    file_info = {
+        "chat_id": event.chat_id,
+        "message_id": event.id,
+        "file_type": file_type,
+        "file_size": file_size_mb,
+        "uploaded_by": event.sender_id,
+    }
 
-    # Size check (skip photos if size unknown)
-    if file_size and (file_size / (1024*1024)) > MAX_FILE_SIZE_MB:
-        return await event.reply(f"❌ File too large! Max is {MAX_FILE_SIZE_MB} MB.")
-
-    # Save and reply with link
+    # ✅ save_file should return a unique reference ID (Mongo ID or UUID)
     file_ref_id = await save_file(
-        user_id=sender_id,
+        user_id=event.sender_id,
         chat_id=event.chat_id,
         message_id=event.id,
         file_type=file_type,
     )
+
+    # ✅ Link format
     link = f"https://t.me/{Config.BOT_USERNAME}?start={file_ref_id}"
+    # ✅ Confirm to user
     await event.reply(
-        f"✅ File saved!\n\n🔗 **Link:** `{link}`\n🆔 **Ref ID:** `{file_ref_id}`\n"
-        "📸 Now send thumbnail images (one or more).\n"
-        "Send `/done` when finished or `/cancel` to abort.",
+        f"✅ File saved!\n\n🔗 **Here's your link:**\n`{link}`\n🆔 **File Ref ID:** `{file_ref_id}`\n"
+        f"📦 **File Type:** {file_type}\n💾 **File Size:** {file_size_mb:.2f} MB",
         parse_mode="md"
     )
 
-    # Initialize state
-    user_states[sender_id] = {
-        "file_link": link,
-        "ref_id": file_ref_id,
-        "thumbs": [],
-    }
-
+    # ✅ Log upload
     try:
-        # Start a conversation to gather thumbnails
-        async with bot.conversation(event.chat_id, timeout=120) as conv:
-            await conv.send_message("📸 Now send thumbnail images (one or more).\nSend `/done` when finished or `/cancel` to abort.")
-
-            while True:
-                thumb_msg = await conv.get_response()
-                text = thumb_msg.text or ""
-
-                if text.lower() == "/cancel":
-                    user_states.pop(sender_id, None)
-                    return await thumb_msg.reply("❌ Upload cancelled.")
-
-                if text.lower() == "/done":
-                    if not user_states[sender_id]["thumbs"]:
-                        await conv.send_message("❗ Send at least one thumbnail or `/cancel`.")
-                        continue
-                    break
-
-                if not thumb_msg.photo:
-                    await conv.send_message("❗ Please send a valid image or `/done` to finish.")
-                    continue
-
-                user_states[sender_id]["thumbs"].append(thumb_msg.photo)
-                await conv.send_message("✅ Thumbnail saved. Send more or `/done` to finish.")
-
-            # Ask for title
-            await conv.send_message("📝 Now send the **title** for your post:")
-            title_msg = await conv.get_response()
-            if (title_msg.text or "").lower() == "/cancel":
-                user_states.pop(sender_id, None)
-                return await title_msg.reply("❌ Upload cancelled.")
-            title = title_msg.text
-
-            # Ask for channel
-            await conv.send_message(
-                "📢 Finally, send the **channel ID** (e.g., `@channel` or `-1001234567890`)."
-            )
-            channel_msg = await conv.get_response()
-            if (channel_msg.text or "").lower() == "/cancel":
-                user_states.pop(sender_id, None)
-                return await channel_msg.reply("❌ Upload cancelled.")
-            channel_id = channel_msg.text.strip()
-
-        # Outside conversation: send to target channel
-        thumbs = user_states[sender_id]["thumbs"]
-        buttons = [Button.url("Click Here To Watch", url=link)]
-
-        # Send first thumb with button & caption
-        await bot.send_file(
-            channel_id,
-            thumbs[0],
-            caption=f"**{title}**",
-            buttons=buttons,
-            parse_mode="md"
-        )
-        # Send remaining thumbnails without caption/buttons
-        for thumb in thumbs[1:]:
-            await bot.send_file(channel_id, thumb)
-
-        # Log to LOG_CHANNEL_ID
-        await bot.send_file(
+        # Get user mention manually
+        sender = await event.get_sender()
+        mention = f"[{sender.first_name}](tg://user?id={sender.id})"
+        await bot.send_message(
             Config.LOG_CHANNEL_ID,
-            thumbs[0],
-            caption=f"**{title}**\n\n🔗 [Watch]({link})",
-            buttons=buttons,
+            f"#UPLOAD\n👤 **Uploader:** {mention}\n"
+            f"📦 **Type:** {file_type}\n🆔 **File Ref ID:** `{file_ref_id}`\n"
+            f"💾 **File Size:** {file_size_mb:.2f} MB\n"
+            f"🔗 [Open File Link]({link})",
             parse_mode="md"
         )
-
-        await channel_msg.reply("✅ Posted successfully!")
-
-    except asyncio.TimeoutError:
-        user_states.pop(sender_id, None)
-        return await event.reply("⌛ Timeout. Please start again.")
+    except Exception as e:
+        print(f"[LOG ERROR] Failed to log upload: {e}")
         
