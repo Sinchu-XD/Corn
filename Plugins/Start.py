@@ -2,7 +2,7 @@ from telethon import TelegramClient, events, Button
 from telethon.tl.types import InputPeerUser
 from Config import Config
 from Bot import bot
-from .Spam import is_spam_allowed
+from .Spam import is_spam_allowed, enabled_users
 from Database import add_user, get_sudo_list, get_main_channel
 from Decorators import subscription_required
 
@@ -17,7 +17,7 @@ async def start_command(event):
     user_id = event.sender_id
     user = await event.get_sender()
 
-    if not is_spam_allowed(user_id):
+    if user_id in enabled_users and not is_spam_allowed(user_id):
         await event.respond("🚫 You're sending commands too fast. Please wait a moment.")
         return
     
