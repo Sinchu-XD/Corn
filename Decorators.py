@@ -135,6 +135,20 @@ async def recheck_subscription(event):
     except Exception as e:
         print(f"[Message Delete Error] {e}")
 
+
+async def delete_messages(user_message, bot_message, delay=5):
+    await asyncio.sleep(delay)
+    try:
+        await user_message.delete()
+    except:
+        pass
+    try:
+        await bot_message.delete()
+    except:
+        pass
+
+
+
 # ✅ Admin/Sudo Checks
 def owner_only(event: events.NewMessage.Event):
     return event.sender_id == Config.OWNER_ID
