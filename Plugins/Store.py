@@ -13,6 +13,10 @@ user_states = {}  # Track user upload sessions
 async def handle_file(event):
     if not event.is_private:
         return await event.reply("❌ This command can only be used in private chats.")
+
+    if event.sender_id in user_states:
+        return
+    
     if not event.media:
         return await event.reply("❌ Please send a media file.")
 
