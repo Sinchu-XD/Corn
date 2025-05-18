@@ -2,7 +2,7 @@ from telethon import TelegramClient, events, Button
 from telethon.tl.types import InputPeerUser
 from Config import Config
 from Bot import bot
-from .Spam import spam_check
+from .Spam import is_spam_allowed
 from Database import add_user, get_sudo_list, get_main_channel
 from Decorators import subscription_required
 
@@ -12,13 +12,17 @@ async def is_admin(uid: int) -> bool:
     return uid == Config.OWNER_ID or uid in sudo_users
 
 # ✅ /start command without any channel logic
-@bot.on(events.NewMessage(pattern='/start') & spam_check())
+@bot.on(events.NewMessage(pattern='/start'))
 async def start_command(event):
     user_id = event.sender_id
     user = await event.get_sender()
+
+    if not is_spam_allowed(user_id):
+        await event.respond("🚫 You're sending commands too fast. Please wait a moment.")
+        return
+    
     await add_user(user.id, user.first_name, user.username)
     mention = f"[{user.first_name}](tg://user?id={user.id})"
-
     try:
         await bot.send_message(
             Config.LOG_CHANNEL_ID,
