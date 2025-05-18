@@ -113,7 +113,7 @@ async def handle_file(event):
 
         # Outside conversation: send to target channel
         thumbs = user_states[sender_id]["thumbs"]
-        buttons = [Button.url("📺 Watch", url=link)]
+        buttons = [Button.url("Click Here To Watch", url=link)]
 
         # Send first thumb with button & caption
         await bot.send_file(
