@@ -2,6 +2,7 @@ from telethon import TelegramClient, events, Button
 from telethon.tl.types import InputPeerUser
 from Config import Config
 from Bot import bot
+from .Spam import spam_check
 from Database import add_user, get_sudo_list, get_main_channel
 from Decorators import subscription_required
 
@@ -11,7 +12,7 @@ async def is_admin(uid: int) -> bool:
     return uid == Config.OWNER_ID or uid in sudo_users
 
 # ✅ /start command without any channel logic
-@bot.on(events.NewMessage(pattern='/start'))
+@bot.on(events.NewMessage(pattern='/start') & spam_check())
 async def start_command(event):
     user_id = event.sender_id
     user = await event.get_sender()
