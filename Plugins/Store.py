@@ -75,7 +75,7 @@ async def handle_file(event):
 
     try:
         while True:
-            msg = await bot.wait_for(events.NewMessage(from_users=sender_id), timeout=120)
+            msg = await bot.wait_event(events.NewMessage(from_users=sender_id), timeout=120)
 
             if msg.raw_text.lower() == "/cancel":
                 user_states.pop(sender_id, None)
@@ -95,14 +95,14 @@ async def handle_file(event):
             await msg.reply("✅ Thumbnail saved. Send more or `/done` to finish.")
 
         await event.respond("📝 Now send the **title** for your post:")
-        title_event = await bot.wait_for(events.NewMessage(from_users=sender_id), timeout=120)
+        title_event = await bot.wait_event(events.NewMessage(from_users=sender_id), timeout=120)
         if title_event.raw_text.lower() == "/cancel":
             user_states.pop(sender_id, None)
             return await title_event.reply("❌ Upload cancelled.")
         title = title_event.text
 
         await event.respond("📢 Finally, send the **channel ID** (e.g. `@channel` or `-100...`):")
-        channel_event = await bot.wait_for(events.NewMessage(from_users=sender_id), timeout=120)
+        channel_event = await bot.wait_event(events.NewMessage(from_users=sender_id), timeout=120)
         if channel_event.raw_text.lower() == "/cancel":
             user_states.pop(sender_id, None)
             return await channel_event.reply("❌ Upload cancelled.")
