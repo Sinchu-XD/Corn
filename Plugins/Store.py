@@ -70,6 +70,8 @@ async def handle_file(event):
     try:
         # Start a conversation to gather thumbnails
         async with bot.conversation(event.chat_id, timeout=120) as conv:
+            await conv.send_message("📸 Now send thumbnail images (one or more).\nSend `/done` when finished or `/cancel` to abort.")
+
             while True:
                 thumb_msg = await conv.get_response()
                 text = thumb_msg.text or ""
