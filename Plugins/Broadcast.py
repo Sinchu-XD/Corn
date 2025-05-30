@@ -28,16 +28,7 @@ async def broadcast_handler(event):
 
     for uid in users:
         try:
-            if reply_msg.media:
-                await bot.send_file(
-                    uid,
-                    file=reply_msg.media,
-                    caption=reply_msg.text or "",
-                    force_document=False,
-                    parse_mode='md'
-                )
-            elif reply_msg.text:
-                await bot.send_message(uid, reply_msg.text, parse_mode='md')
+            await bot.forward_messages(entity=uid, messages=reply_msg.id, from_peer=event.chat_id)
             done += 1
         except Exception:
             failed += 1
