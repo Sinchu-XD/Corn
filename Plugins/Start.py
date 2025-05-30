@@ -10,7 +10,7 @@ from Database import add_user, get_sudo_list
 user_command_times = defaultdict(list)
 blocked_users = {}
 unblock_notified = set()
-VIOLATION_WINDOW = 7  # seconds
+VIOLATION_WINDOW = 5  # seconds
 BLOCK_DURATION = 20 * 60  # 20 minutes
 
 # ✅ Admin check
@@ -96,7 +96,7 @@ async def start_command(event):
     # ✅ Buttons
     keyboard = [
         [Button.url("🏠 Main Channel", "https://t.me/StreeHub")],
-        [Button.url("How To Use Bot", "https://t.me/SexyStreeBot/2")]
+        [Button.url("How To Use Bot", "https://t.me/SexyStreeBot/6")]
     ]
 
     if await is_admin(user_id):
