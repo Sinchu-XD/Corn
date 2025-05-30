@@ -34,8 +34,8 @@ async def start_command(event):
             try:
                 await bot.send_message(
                     user_id,
-                    "✅ You are now unblocked. Please avoid spamming commands.\n"
-                    "✅ अब आप अनब्लॉक हो चुके हैं। कृपया बार-बार कमांड भेजना बंद करें।"
+                    "**✅ You are now unblocked. Please avoid spamming commands**.\n\n\n"
+                    "**✅ अब आप अनब्लॉक हो चुके हैं। कृपया बार-बार कमांड भेजना बंद करें।**"
                 )
             except:
                 pass
@@ -43,8 +43,8 @@ async def start_command(event):
             if user_id not in unblock_notified:
                 unblock_notified.add(user_id)
                 await event.reply(
-                    "⛔ You are blocked for 20 minutes due to spamming.\n"
-                    "⛔ आप 20 मिनट के लिए ब्लॉक हो चुके हैं क्योंकि आपने बार-बार कमांड भेजी।"
+                    "**⛔ You are blocked for 20 minutes due to spamming.**\n\n\n"
+                    "**⛔ आप 20 मिनट के लिए ब्लॉक हो चुके हैं क्योंकि आपने बार-बार कमांड भेजी।**"
                 )
             return
 
@@ -56,15 +56,15 @@ async def start_command(event):
 
     if len(user_command_times[user_id]) == 3:
         await event.reply(
-            "⚠️ Stop spamming commands! One more and you will be blocked for 20 minutes.\n"
-            "⚠️ बार-बार कमांड मत भेजो! अगली बार ब्लॉक कर दिए जाओगे 20 मिनट के लिए।"
+            "⚠️** Stop spamming commands! One more and you will be blocked for 20 minutes**.\n\n\n"
+            "⚠️** बार-बार कमांड मत भेजो! अगली बार ब्लॉक कर दिए जाओगे 20 मिनट के लिए।**"
         )
     elif len(user_command_times[user_id]) > 3:
         blocked_users[user_id] = now + BLOCK_DURATION
         user_command_times[user_id].clear()
         await event.reply(
-            "⛔ You are now blocked for 20 minutes due to spamming.\n"
-            "⛔ आपने 3 बार से ज्यादा कमांड भेजी, इसलिए आपको 20 मिनट के लिए ब्लॉक किया गया है।"
+            "⛔ **You are now blocked for 20 minutes due to spamming.**\n\n\n"
+            "⛔** आपने 3 बार से ज्यादा कमांड भेजी, इसलिए आपको 20 मिनट के लिए ब्लॉक किया गया है**।"
         )
 
         # ✅ Send log to LOG_CHANNEL
