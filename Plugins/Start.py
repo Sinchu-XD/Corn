@@ -41,8 +41,8 @@ async def start_command(event):
     # ✅ Prepare keyboard
     keyboard = []
     main_channel = await get_main_channel()
-    if main_channel:
-        keyboard.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
+    
+    keyboard.append([Button.url("🏠 Main Channel", f"https://t.me/StreeHub")])
 
     keyboard.append([Button.url("How To Use Bot", "https://t.me/SexyStreeBot/6")])
 
