@@ -44,7 +44,7 @@ async def start_command(event):
     if main_channel:
         keyboard.append([Button.url("🏠 Main Channel", f"https://t.me/{main_channel}")])
 
-    keyboard.append([Button.url("How To Use Bot", "https://t.me/SexyStreeBot/2")])
+    keyboard.append([Button.url("How To Use Bot", "https://t.me/SexyStreeBot/6")])
 
     # ✅ Admin view
     if await is_admin(user_id):
