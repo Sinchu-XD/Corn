@@ -5,11 +5,10 @@ from telethon.errors import UserIsBlockedError, ChatWriteForbiddenError
 from Config import Config
 from Bot import bot
 from Database import add_user, get_sudo_list
+from Database import add_blocked_user, get_blocked_user, remove_blocked_user
 
 # Spam protection
 user_command_times = defaultdict(list)
-blocked_users = {}
-unblock_notified = set()
 VIOLATION_WINDOW = 5  # seconds
 BLOCK_DURATION = 20 * 60  # 20 minutes
 
@@ -25,27 +24,26 @@ async def start_command(event):
     user = await event.get_sender()
     now = time.time()
 
-    # ✅ Auto-unblock logic
-    if user_id in blocked_users:
-        if now >= blocked_users[user_id]:
-            del blocked_users[user_id]
+    # ✅ Check if user is blocked in DB
+    unblock_time = await get_blocked_user(user_id)
+    if unblock_time:
+        if now >= unblock_time:
+            await remove_blocked_user(user_id)
             user_command_times[user_id].clear()
-            unblock_notified.discard(user_id)
             try:
                 await bot.send_message(
                     user_id,
-                    "**✅ You are now unblocked. Please avoid spamming commands**.\n\n\n"
+                    "**✅ You are now unblocked. Please avoid spamming commands**.\n\n"
                     "**✅ अब आप अनब्लॉक हो चुके हैं। कृपया बार-बार कमांड भेजना बंद करें।**"
                 )
             except:
                 pass
         else:
-            if user_id not in unblock_notified:
-                unblock_notified.add(user_id)
-                await event.reply(
-                    "**⛔ You are blocked for 20 minutes due to spamming.**\n\n\n"
-                    "**⛔ आप 20 मिनट के लिए ब्लॉक हो चुके हैं क्योंकि आपने बार-बार कमांड भेजी।**"
-                )
+            wait = int((unblock_time - now) / 60)
+            await event.reply(
+                f"**⛔ You are blocked for {wait} more minutes due to spamming.**\n\n"
+                f"**⛔ आप {wait} मिनट के लिए ब्लॉक हैं क्योंकि आपने बार-बार कमांड भेजी।**"
+            )
             return
 
     # ✅ Track command timestamps
@@ -56,23 +54,23 @@ async def start_command(event):
 
     if len(user_command_times[user_id]) == 3:
         await event.reply(
-            "⚠️** Stop spamming commands! One more and you will be blocked for 20 minutes**.\n\n\n"
-            "⚠️** बार-बार कमांड मत भेजो! अगली बार ब्लॉक कर दिए जाओगे 20 मिनट के लिए।**"
+            "⚠️ **Stop spamming commands! One more and you will be blocked for 20 minutes.**\n\n"
+            "⚠️ **बार-बार कमांड मत भेजो! अगली बार 20 मिनट के लिए ब्लॉक हो जाओगे।**"
         )
     elif len(user_command_times[user_id]) > 3:
-        blocked_users[user_id] = now + BLOCK_DURATION
+        await add_blocked_user(user_id, BLOCK_DURATION)
         user_command_times[user_id].clear()
         await event.reply(
-            "⛔ **You are now blocked for 20 minutes due to spamming.**\n\n\n"
-            "⛔** आपने 3 बार से ज्यादा कमांड भेजी, इसलिए आपको 20 मिनट के लिए ब्लॉक किया गया है**।"
+            "⛔ **You are now blocked for 20 minutes due to spamming.**\n\n"
+            "⛔ **आप 20 मिनट के लिए ब्लॉक हो चुके हैं क्योंकि आपने बार-बार कमांड भेजी।**"
         )
 
-        # ✅ Send log to LOG_CHANNEL
+        # ✅ Log to LOG_CHANNEL
         mention = f"[{user.first_name}](tg://user?id={user.id})"
         try:
             await bot.send_message(
                 Config.LOG_CHANNEL_ID,
-                f"🚫 #BLOCKED\n👤 **User:** {mention} (`{user.id}`)\n📛 Reason: Spamming `/start` more than 3 times in {VIOLATION_WINDOW} seconds.",
+                f"🚫 #BLOCKED\n👤 **User:** {mention} (`{user.id}`)\n📛 Reason: Spammed `/start` more than 3 times in {VIOLATION_WINDOW} seconds.",
                 parse_mode='md'
             )
         except:
@@ -83,7 +81,7 @@ async def start_command(event):
     await add_user(user.id, user.first_name, user.username)
     mention = f"[{user.first_name}](tg://user?id={user.id})"
 
-    # ✅ Logging join (optional)
+    # ✅ Log user start
     try:
         await bot.send_message(
             Config.LOG_CHANNEL_ID,
@@ -105,6 +103,7 @@ async def start_command(event):
         )
 
     return await event.reply(
-        "•  ** How To Use Bot Tutorial Watch Here :-**\n\n•** बॉट ट्यूटोरियल का उपयोग कैसे करें यहां क्लिक करके देखें:**\n👇🏻👇🏻👇🏻",
+        "•  **How To Use Bot Tutorial Watch Here :-**\n\n"
+        "• **बॉट ट्यूटोरियल का उपयोग कैसे करें यहां क्लिक करके देखें:**\n👇🏻👇🏻👇🏻",
         buttons=keyboard
     )
