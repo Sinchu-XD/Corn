@@ -84,7 +84,7 @@ def subscription_required(func):
         buttons.append([Button.inline("✅ I Joined", data=f"check_join_{file_ref_id or 'none'}".encode())])
 
         await event.respond(
-            "📥 Please join all required channels to use this bot:",
+            "📥** Please join all required channels to use this bot**:\n\n वीडियो प्राप्त करने के लिए नीचे दिए हुए तीनो चैनल पे क्लिक करके जुड़ें करो उसके बाद **I JOINED** बटन पर क्लिक करें",
             buttons=buttons
         )
     return wrapper
