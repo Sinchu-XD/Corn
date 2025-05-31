@@ -13,6 +13,7 @@ channel_col = db.required_channels
 settings_collection = db.settings
 files_col = db.files
 config_col = db.config
+blocked_col = db.blocked_users
 
 # ========== USERS ==========
 async def add_user(user_id: int, first_name: str, username: str = None):
@@ -31,6 +32,29 @@ def get_all_users():
     users = users_collection.find({}, {"user_id": 1})
     return [user["user_id"] for user in users]
 
+
+# ========= BLOCKED USERS / UNBLOCK USERS FOR SPAM ===========
+
+async def add_blocked_user(user_id: int, duration_sec: int = 1200):
+    unblock_time = int(time.time()) + duration_sec
+    blocked_col.update_one(
+        {"user_id": user_id},
+        {"$set": {"unblock_time": unblock_time}},
+        upsert=True
+    )
+
+# Remove user from block list
+async def remove_blocked_user(user_id: int):
+    blocked_col.delete_one({"user_id": user_id})
+
+# Get unblock time if user is blocked
+async def get_blocked_user(user_id: int):
+    user = blocked_col.find_one({"user_id": user_id})
+    if user and user["unblock_time"] > time.time():
+        return user["unblock_time"]
+    elif user:
+        await remove_blocked_user(user_id)
+    return None
 
 # ========== SUDO USERS ==========
 async def add_sudo(user_id: int):
