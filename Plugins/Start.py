@@ -10,7 +10,7 @@ from Database import add_blocked_user, get_blocked_user, remove_blocked_user
 # Spam protection
 user_command_times = defaultdict(list)
 VIOLATION_WINDOW = 5  # seconds
-BLOCK_DURATION = 20 * 60  # 20 minutes
+BLOCK_DURATION = 10 * 60  # 20 minutes
 
 # ✅ Admin check
 async def is_admin(uid: int) -> bool:
@@ -54,15 +54,15 @@ async def start_command(event):
 
     if len(user_command_times[user_id]) == 3:
         await event.reply(
-            "⚠️ **Stop spamming commands! One more and you will be blocked for 20 minutes.**\n\n"
-            "⚠️ **बार-बार कमांड मत भेजो! अगली बार 20 मिनट के लिए ब्लॉक हो जाओगे।**"
+            "⚠️ **Stop spamming commands! One more and you will be blocked for 10 minutes.**\n\n"
+            "⚠️ **बार-बार कमांड मत भेजो! अगली बार 10 मिनट के लिए ब्लॉक हो जाओगे।**"
         )
     elif len(user_command_times[user_id]) > 3:
         await add_blocked_user(user_id, BLOCK_DURATION)
         user_command_times[user_id].clear()
         await event.reply(
-            "⛔ **You are now blocked for 20 minutes due to spamming.**\n\n"
-            "⛔ **आप 20 मिनट के लिए ब्लॉक हो चुके हैं क्योंकि आपने बार-बार कमांड भेजी।**"
+            "⛔ **You are now blocked for 10 minutes due to spamming.**\n\n"
+            "⛔ **आप 10 मिनट के लिए ब्लॉक हो चुके हैं क्योंकि आपने बार-बार कमांड भेजी।**"
         )
 
         # ✅ Log to LOG_CHANNEL
